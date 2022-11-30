@@ -26,6 +26,8 @@ catkin_package(
 
 
 set(SRC ${SRC} 
+  src/quadtree_array.cpp
+  src/timer.cpp
 )
 
 set(includeDirs ${includeDirs} ${CMAKE_CURRENT_BINARY_DIR})
