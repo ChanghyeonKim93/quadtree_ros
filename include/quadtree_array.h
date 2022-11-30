@@ -23,6 +23,35 @@
 #define MAKE_BRANCH(nd)    ( (nd).state = STATE_BRANCH     ) // 브랜치 노드로 만듦
 #define MAKE_LEAF(nd)      ( (nd).state = STATE_LEAF       ) // 리프 노드로 만듦
 
+struct InsertData{ // 12 bytes (actually 16 bytes)
+    float x_nom;   // 4 bytes
+    float y_nom;   // 4 bytes
+    uint32_t    id_elem; // 4 bytes
+
+    InsertData() : x_nom(-1.0f), y_nom(-1.0f), id_elem(0){ };
+    void setData(float x_nom_, float y_nom_, uint32_t id_elem_){
+        x_nom   = x_nom_; 
+        y_nom   = y_nom_;
+        id_elem = id_elem_;
+    };
+};
+
+struct QuaryData{
+    float x; // 4 bytes
+    float y; // 4 bytes
+    float x_nom; // 4 bytes
+    float y_nom; // 4 bytes
+
+    uint32_t id_node_cached; // 4 bytes
+
+    uint32_t id_data_matched; // 4 bytes
+    uint32_t id_node_matched; // 4 bytes
+    uint32_t id_elem_matched; // 4 bytes
+
+    float min_dist2_;
+    float min_dist_;
+};
+
 
 namespace ArrayBased
 {
@@ -128,35 +157,6 @@ namespace ArrayBased
             inline int getNumElem() const { return elem_ids.size(); };
         };
 
-        struct InsertData{ // 12 bytes (actually 16 bytes)
-            float x_nom;   // 4 bytes
-            float y_nom;   // 4 bytes
-            uint32_t    id_elem; // 4 bytes
-
-            InsertData() : x_nom(-1.0f), y_nom(-1.0f), id_elem(0){ };
-            void setData(float x_nom_, float y_nom_, uint32_t id_elem_){
-                x_nom   = x_nom_; 
-                y_nom   = y_nom_;
-                id_elem = id_elem_;
-            };
-        };
-
-        struct QuaryData{
-            float x; // 4 bytes
-            float y; // 4 bytes
-            float x_nom; // 4 bytes
-            float y_nom; // 4 bytes
-
-            uint32_t id_node_cached; // 4 bytes
-
-            uint32_t id_data_matched; // 4 bytes
-            uint32_t id_node_matched; // 4 bytes
-            uint32_t id_elem_matched; // 4 bytes
-
-            float min_dist2_;
-            float min_dist_;
-        };
-
         struct QuadParams {
             // Distance parameter
             float approx_rate; // 0.3~1.0;
@@ -165,22 +165,65 @@ namespace ArrayBased
             Flag flag_adj_search_only;
         };
 
+    // Constructor
     public:
-        Quadtree(float x_min, float x_max, float y_min, float y_max, 
+        Quadtree(
+            float x_min, float x_max, 
+            float y_min, float y_max, 
             uint32_t max_depth, uint32_t max_elem_per_leaf,
             float approx_rate = 1.0, Flag flag_adj = false);
         ~Quadtree();
 
-        void insert(float x, float y, int id_data);
-        void NNSearch(float x, float y,
-            uint32_t& id_data_matched, uint32_t& id_node_matched);
-        void cachedNNSearch(float x, float y, int id_node_cached, 
-            uint32_t& id_data_matched, uint32_t& id_node_matched);
-        
-        void NNSearchDebug(float x, float y, 
-            uint32_t& id_data_matched, uint32_t& id_node_matched, uint32_t& n_access);
-        void cachedNNSearchDebug(float x, float y, int id_node_cached, 
-            uint32_t& id_data_matched, uint32_t& id_node_matched, uint32_t& n_access);
+    // Insert function
+    public:
+        /// @brief Insert data to the tree
+        /// @param x x coordinate (input)
+        /// @param y y coordinate (input)
+        /// @param id_data id of the data (input)
+        void insert(
+            float x, float y, 
+            int id_data); 
+
+    // Search function
+    public:
+        /// @brief nearest neighbor search
+        /// @param x x coordinate (input)
+        /// @param y y coordinate (input)
+        /// @param id_data_matched (output) id data matched 
+        /// @param id_node_matched (output) id node matched 
+        void searchNN(
+            float x, float y,
+            uint32_t& id_data_matched, 
+            uint32_t& id_node_matched);
+            
+        /// @brief nearest neighbor search
+        /// @param x x coordinate (input)
+        /// @param y y coordinate (input)
+        /// @param id_node_cached cached node id (input) 
+        /// @param id_data_matched (output) matched data id 
+        /// @param id_node_matched (output) matched node id
+        void searchNNCached(
+            float x, float y, int id_node_cached, 
+            uint32_t& id_data_matched, 
+            uint32_t& id_node_matched);
+    
+    // Debug functions
+    public:
+        void searchNNDebug(float x, float y, 
+            uint32_t& id_data_matched,
+            uint32_t& id_node_matched,
+            uint32_t& n_access);
+        void searchNNCachedDebug(float x, float y, int id_node_cached, 
+            uint32_t& id_data_matched, 
+            uint32_t& id_node_matched, 
+            uint32_t& n_access);
+    
+    // Get methods
+    public:
+        uint32_t getNumNodes();
+        uint32_t getNumNodesActivated();
+
+
 
     // Related to generate tree.
     private:
@@ -218,7 +261,7 @@ namespace ArrayBased
         // Stores all the nodes in the quadtree. The second node in this
         // sequence is always the root.
         // index 0 is not used.
-        std::vector<QuadNode> nodes;
+        std::vector<QuadNode> nodes_;
         uint32_t n_nodes_;
         uint32_t n_node_activated_;
         // |  1  |  2  |  3  |  4  |  5  |  ...
@@ -230,11 +273,6 @@ namespace ArrayBased
 
         float x_normalizer_;
         float y_normalizer_;
-
-    public:
-        uint32_t getNumNodes();
-        uint32_t getNumNodesActivated();
-
 
     private: 
         // quadtree range (in real scale)

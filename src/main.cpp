@@ -127,7 +127,7 @@ int main(int argc, char **argv) {
             timer::tic();
             for(uint32_t i = 0; i < n_pts_q; ++i){
                 uint32_t access_temp = 0;
-                qt->NNSearchDebug(pts_q[i].first, pts_q[i].second, 
+                qt->searchNNDebug(pts_q[i].first, pts_q[i].second, 
                     id_data_matched_q[i], id_node_matched_q[i], access_temp);
                 access_normal[d] += access_temp;
                 accesses.push_back(access_temp);
@@ -162,7 +162,7 @@ int main(int argc, char **argv) {
             timer::tic();
             for(int i = 0; i < n_pts_q; ++i){
                 uint32_t access_temp = 0;
-                qt->cachedNNSearchDebug(pts_q[i].first, pts_q[i].second, id_node_matched_q[i],
+                qt->searchNNCachedDebug(pts_q[i].first, pts_q[i].second, id_node_matched_q[i],
                     id_data_matched_q[i], id_node_matched_q[i], access_temp);
                 access_cached[d] += access_temp;
                 accesses.push_back(access_temp);
